@@ -69,21 +69,21 @@ def generate_feature_vector(df: pd.DataFrame) -> dict[str, float]:
     static_variables = config["static"]
     timeseries_variables = config["timeseries"]
     
-    # Replace unknown values with np.nan
+    # Replace unknown values with np.nan before extracting any features.
     df_replaced = df.replace(-1, np.nan)
 
-    # Extract time-invariant and time-varying features (look into documentation for pd.DataFrame.iloc)
-    static, timeseries = df.iloc[0:5], df.iloc[5:]
-
     feature_dict = {}
-    # extract raw values of time-invariant variables into feature dict
-    for _, row in static.iterrows():
-        feature_dict[row["Variable"]] = row["Value"]
+    for variable in static_variables:
+        values = df_replaced.loc[
+            df_replaced["Variable"] == variable, "Value"
+        ]
+        feature_dict[variable] = values.iloc[0] if not values.empty else np.nan
 
-    # extract max of time-varying variables into feature dict
-    for variable in timeseries["Variable"].unique():
-        max_value = timeseries[timeseries["Variable"] == variable]["Value"].max()
-        feature_dict[f"max_{variable}"] = max_value
+    for variable in timeseries_variables:
+        values = df_replaced.loc[
+            df_replaced["Variable"] == variable, "Value"
+        ]
+        feature_dict[f"max_{variable}"] = values.max() if not values.empty else np.nan
     
     return feature_dict
 
