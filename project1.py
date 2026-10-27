@@ -157,7 +157,7 @@ def get_classifier(
 
     if loss == "logistic":
         return LogisticRegression(
-            penalty="l2",
+            penalty=penalty if penalty is not None else "l2",
             C=C,
             solver="liblinear",
             fit_intercept=False,
@@ -170,58 +170,75 @@ def get_classifier(
     raise ValueError(f"Unsupported loss function: {loss}")
 
 
+_PERFORMANCE_METRICS = {
+    "accuracy",
+    "precision",
+    "f1_score",
+    "auroc",
+    "average_precision",
+    "sensitivity",
+    "specificity",
+}
+
+
+def _validate_metric(metric: str) -> None:
+    if metric not in _PERFORMANCE_METRICS:
+        raise ValueError(f"Unknown metric: {metric}")
+
+
+def _get_model_scores(
+    clf: KernelRidge | LogisticRegression,
+    X: npt.NDArray,
+) -> npt.NDArray:
+    if isinstance(clf, KernelRidge):
+        return np.asarray(clf.predict(X)).reshape(-1)
+    return np.asarray(clf.decision_function(X)).reshape(-1)
+
+
+def _calculate_performance_metric(
+    y_true: npt.NDArray,
+    y_scores: npt.NDArray,
+    metric: str,
+) -> float:
+    _validate_metric(metric)
+    y_pred = np.where(y_scores >= 0, 1, -1)
+
+    if metric == "accuracy":
+        score = accuracy_score(y_true, y_pred)
+    elif metric == "precision":
+        score = precision_score(y_true, y_pred, pos_label=1, zero_division=0)
+    elif metric == "f1_score":
+        score = f1_score(y_true, y_pred, pos_label=1, zero_division=0)
+    elif metric == "auroc":
+        score = roc_auc_score(y_true, y_scores)
+    elif metric == "average_precision":
+        score = average_precision_score(y_true, y_scores)
+    else:
+        tn, fp, fn, tp = confusion_matrix(
+            y_true, y_pred, labels=[-1, 1]
+        ).ravel()
+        if metric == "sensitivity":
+            denominator = tp + fn
+            score = tp / denominator if denominator else 0.0
+        else:
+            denominator = tn + fp
+    return float(score)
+
+
 def performance(
     clf_trained: KernelRidge | LogisticRegression,
     X: npt.NDArray,
     y_true: npt.NDArray,
     metric: str = "accuracy"
-) -> dict[str, float]:
+) -> float:
+    """Return one requested metric for a fitted classifier and dataset.
+
+    Supported metrics are accuracy, precision, f1_score, auroc,
+    average_precision, sensitivity, and specificity.
     """
-    Calculates the performance metric as evaluated on the true labels
-    y_true versus the predicted scores from clf_trained and X.
-    Returns single sample performance as specified by the user. Note: you may
-    want to implement an additional helper function to reduce code redundancy.
-
-    Args:
-        clf_trained: a fitted instance of sklearn estimator
-        X : (n,d) np.array containing features
-        y_true: (n,) np.array containing true labels
-        metric: string specifying the performance metric (default='accuracy'
-                other options: 'precision', 'f1-score', 'auroc', 'average_precision',
-                'sensitivity', and 'specificity')
-    Returns:
-        peformance for the specific metric
-    """
-    
-    y_pred = clf_trained.predict(X)
-    y_scores = clf_trained.decision_function(X)
-
-    # Initialize metrics dictionary
-    metrics = {}
-
-    # Compute all metrics
-    metrics["accuracy"] = accuracy_score(y_true, y_pred)
-
-    try:
-        metrics["precision"] = precision_score(y_true, y_pred, pos_label=1)
-    except ZeroDivisionError:
-        metrics["precision"] = 0.0  # Handle divide-by-zero
-
-    try:
-        metrics["f1_score"] = f1_score(y_true, y_pred, pos_label=1)
-    except ZeroDivisionError:
-        metrics["f1_score"] = 0.0  # Handle divide-by-zero
-
-    metrics["auroc"] = roc_auc_score(y_true, y_scores)
-    metrics["average_precision"] = average_precision_score(y_true, y_scores)
-
-    # Sensitivity and Specificity from confusion matrix
-    cm = confusion_matrix(y_true, y_pred, labels=[-1, 1])
-    tn, fp, fn, tp = cm.ravel()
-    metrics["sensitivity"] = tp / (tp + fn)  # Sensitivity (Recall)
-    metrics["specificity"] = tn / (tn + fp)  # Specificity
-
-    return metrics
+    _validate_metric(metric)
+    y_scores = _get_model_scores(clf_trained, X)
+    return _calculate_performance_metric(y_true, y_scores, metric)
 
 
 def cv_performance(
@@ -245,13 +262,15 @@ def cv_performance(
         y: (n,) vector of binary labels {1,-1}
         k: the number of folds (default=5)
         metric: the performance metric (default='accuracy'
-             other options: 'precision', 'f1-score', 'auroc', 'average_precision',
+             other options: 'precision', 'f1_score', 'auroc', 'average_precision',
              'sensitivity', and 'specificity')
 
     Returns:
         a tuple containing (mean, min, max) cross-validation performance across the k folds
     """
     
+    _validate_metric(metric)
+
     # initialize cross-validation
     skf = StratifiedKFold(n_splits=k, shuffle=False)
 
@@ -266,46 +285,8 @@ def cv_performance(
         # train classifier
         clf.fit(X_train, y_train)
 
-        # predict on test set
-        if isinstance(clf, KernelRidge):
-            y_scores = clf.predict(X_test)
-        
-        else:
-            y_scores = clf.decision_function(X_test)
-
-        #compute performance metric
-        if metric == "accuracy":
-            y_pred = np.where(y_scores >= 0, 1, -1)
-            score = accuracy_score(y_test, y_pred)
-        elif metric == "precision":
-            y_pred = np.where(y_scores >= 0, 1, -1)
-            try:
-                score = precision_score(y_test, y_pred, pos_label=1)
-            except ZeroDivisionError:
-                score = 0.0
-        elif metric == "f1_score":
-            y_pred = np.where(y_scores >= 0, 1, -1)
-            try:
-                score = f1_score(y_test, y_pred, pos_label=1)
-            except ZeroDivisionError:
-                score = 0.0
-        elif metric == "auroc":
-            score = roc_auc_score(y_test, y_scores)
-        elif metric == "average_precision":
-            score = average_precision_score(y_test, y_scores)
-        elif metric == "sensitivity":
-            y_pred = np.where(y_scores >= 0, 1, -1)
-            cm = confusion_matrix(y_test, y_pred, labels=[-1, 1])
-            tn, fp, fn, tp = cm.ravel()
-            score = tp / (tp + fn)
-        elif metric == "specificity":
-            y_pred = np.where(y_scores >= 0, 1, -1)
-            cm = confusion_matrix(y_test, y_pred, labels=[-1, 1])
-            tn, fp, fn, tp = cm.ravel()
-            score = tn / (tn + fp)
-        else:
-            raise ValueError(f"Unknown metric: {metric}")
-        
+        y_scores = _get_model_scores(clf, X_test)
+        score = _calculate_performance_metric(y_test, y_scores, metric)
         scores.append(score)
 
     mean_score = np.mean(scores)
@@ -332,8 +313,8 @@ def select_param_logreg(
         and d is the number of features
         y: (n,) array of binary labels {1,-1}
         k: int specifying the number of folds (default=5)
-        metric: string specifying the performance metric for which to optimize (default='accuracy',
-             other options: 'precision', 'f1-score', 'auroc', 'average_precision', 'sensitivity',
+           metric: string specifying the performance metric for which to optimize (default='accuracy',
+               other options: 'precision', 'f1_score', 'auroc', 'average_precision', 'sensitivity',
              and 'specificity')
         C_range: an array with C values to be searched over
         penalties: a list of strings specifying the type of regularization penalties to be searched over
@@ -393,7 +374,7 @@ def select_param_RBF(
         y: (n,) array of binary labels {1,-1}
         k: the number of folds (default=5)
         metric: the performance metric (default='accuracy',
-             other options: 'precision', 'f1-score', 'auroc', 'average_precision',
+             other options: 'precision', 'f1_score', 'auroc', 'average_precision',
              'sensitivity', and 'specificity')
         C_range: an array with C values to be searched over
         gamma_range: an array with gamma values to be searched over
