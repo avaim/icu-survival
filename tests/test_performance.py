@@ -62,6 +62,17 @@ def test_performance_handles_missing_actual_classes():
     assert performance(classifier, all_positive_X, all_positive_y, "specificity") == 0.0
 
 
+def test_specificity_and_zero_negative_denominator():
+    classifier = FixedScoreClassifier()
+    y = np.array([-1, -1, 1, 1])
+    X = np.array([[-0.5], [0.4], [0.2], [-0.1]])
+    all_positive_y = np.array([1, 1])
+    all_positive_X = np.array([[0.2], [0.4]])
+
+    assert performance(classifier, X, y, "specificity") == 0.5
+    assert performance(classifier, all_positive_X, all_positive_y, "specificity") == 0.0
+
+
 def test_performance_handles_logistic_regression_scores():
     X = np.array([[-4.0], [-3.0], [-2.0], [-1.0], [1.0], [2.0], [3.0], [4.0]])
     y = np.array([-1, -1, -1, -1, 1, 1, 1, 1])

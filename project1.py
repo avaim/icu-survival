@@ -222,6 +222,7 @@ def _calculate_performance_metric(
             score = tp / denominator if denominator else 0.0
         else:
             denominator = tn + fp
+            score = tn / denominator if denominator else 0.0
     return float(score)
 
 
