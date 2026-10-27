@@ -512,8 +512,12 @@ def main():
 
         return np.hstack([X_window1, X_window2])
     
-    X_challenge = split_time_windows(X_challenge)
-    X_heldout = split_time_windows(X_heldout)
+    # Legacy time-window splitting disabled.
+    # The feature matrix already contains aggregated measurements,
+    # so these calls do not correctly separate the 48-hour window.
+
+    # X_challenge = split_time_windows(X_challenge)
+    # X_heldout = split_time_windows(X_heldout)
 
     # use summary statistics for numerical variables
     def compute_summary_statistics(X):
