@@ -13,7 +13,7 @@ Electronic health records contain measurements that may help identify patients a
 The work has two related prediction tasks:
 
 - **In-hospital mortality:** Predict whether a patient survives their hospital stay. This is the primary target for the project's model comparisons and feature-engineering experiments.
-- **30-day mortality:** Train a classifier for the course's final challenge and produce predictions and risk scores for a held-out set.
+- **30-day mortality:** Train a classifier as part of the course's final challenge and produce predictions and risk scores for a held-out set.
 
 Beyond obtaining a prediction, the project examines how preprocessing, regularization, model choice, and class imbalance affect performance.
 
@@ -60,15 +60,9 @@ I compared logistic regression with **kernel ridge regression**, examining both 
 
 ### 5. Final mortality prediction challenge
 
-For the original course challenge, I built a logistic-regression prediction pipeline for **30-day mortality** using the larger training set, feature engineering, scaling, and hyperparameter search. The workflow exports binary predictions and continuous risk scores to `avaim.csv` for the held-out admissions.
+For the first part of the course challenge, I built a logistic-regression prediction pipeline for **30-day mortality** using the larger training set, feature engineering, scaling, and hyperparameter search. The workflow exports binary predictions and continuous risk scores to `avaim.csv` for the held-out admissions.
 
-## Later extension: AI-assisted feature engineering
-
-### The challenge
-
-The original 40-feature representation uses the **maximum** of each time-varying measurement. That describes how high a measurement became but discards information about **when** it occurred or whether it changed during the patient's ICU stay.
-
-I revisited the project to test whether adding simple time-aware features would improve mortality prediction.
+For the second part of the challenge, we were tasked to utilize AI to help improve upon our existing code. The original 40-feature representation uses the **maximum** of each time-varying measurement. That describes how high a measurement became but discards information about **when** it occurred or whether it changed during the patient's ICU stay. I decided to test whether adding simple time-aware features would improve mortality prediction.
 
 ### What I implemented
 
@@ -143,4 +137,4 @@ The scripts expect `data/labels.csv` and patient files under `data/files/`. The 
 
 This is an educational ML experiment, not a clinical risk model. Patient observations are irregular, the original features are coarse summaries, and the added temporal features capture only two broad time windows. Further work could investigate finer-grained trends, alternative missing-data strategies, calibration, and validation on an independent patient cohort.
 
-**Attribution:** The project was originally developed for University of Michigan EECS 445 using course-provided scaffolding and ICU data described by the assignment as sourced from PhysioNet. The later temporal feature extension and its evaluation were added separately. Redistribution of any course materials and patient-level data should follow the applicable permissions and licenses.
+**Attribution:** The project was originally developed for University of Michigan EECS 445 using course-provided scaffolding and ICU data described by the assignment as sourced from PhysioNet. Redistribution of any course materials and patient-level data should follow the applicable permissions and licenses.
