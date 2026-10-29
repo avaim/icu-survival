@@ -2,7 +2,7 @@
 
 **EECS 445 · Introduction to Machine Learning · University of Michigan**
 
-A machine learning project that uses patient measurements from the first 48 hours of an ICU admission to predict mortality risk. The original course project covers feature engineering, model selection, class imbalance, and evaluation; I later revisited it and used an AI coding assistant to explore an improvement to the existing feature representation.
+A machine learning project that uses patient measurements from the first 48 hours of an ICU admission to predict mortality risk. The original course project covers feature engineering, model selection, class imbalance, and evaluation. There was a challenge section where I used an AI coding assistant to explore an improvement to the existing feature representation.
 
 > **Educational project only.** These models are not clinically validated and are not intended for medical decision-making.
 
