@@ -495,30 +495,6 @@ def main():
         "specificity",
     ]
 
-    # splitting up the 48-hr window
-    def split_time_windows(X):
-        n_samples, n_features = X.shape
-        n_time_steps = 48
-        n_features_per_step = n_features // n_time_steps
-
-        X_window1 = X[:, :n_features_per_step * 24] # first 24 hrs
-        X_window2 = X[:, n_features_per_step * 24] # last 24 hrs
-
-        # both windows need same number of dimensions
-        if X_window1.ndim == 1:
-            X_window1 = X_window1.reshape(-1, 1)
-        if X_window2.ndim == 1:
-            X_window2 = X_window2.reshape(-1, 1)
-
-        return np.hstack([X_window1, X_window2])
-    
-    # Legacy time-window splitting disabled.
-    # The feature matrix already contains aggregated measurements,
-    # so these calls do not correctly separate the 48-hour window.
-
-    # X_challenge = split_time_windows(X_challenge)
-    # X_heldout = split_time_windows(X_heldout)
-
     # use summary statistics for numerical variables
     def compute_summary_statistics(X):
         mean = np.mean(X, axis=1, keepdims=True)
